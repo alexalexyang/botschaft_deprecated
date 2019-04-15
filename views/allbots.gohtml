@@ -1,0 +1,16 @@
+{{define "yield" }}
+<div>
+<p>Test allbots page.</p>
+</div>
+
+<script>console.log("Allbots.")</script>
+
+{{.}}
+
+{{range $key, $value := .}}
+    <p>{{$key}}, {{$value}}</p>
+
+{{end}}
+
+{{/* <script type="application/javascript" src="static/maps.js"></script> */}}
+{{end}}
