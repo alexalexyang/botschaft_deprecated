@@ -29,7 +29,7 @@ This project follows what I think is MVC, but also has a handlers part. Here are
 
 **root**
 
-Contains main.go, which contains handlers. Handlers call up the appropriate view controller function for each page we visit.
+Contains main.go, which contains handlers. Handlers call the appropriate controller function for each page we visit.
 
 **models**
 
@@ -91,6 +91,10 @@ http://herman.asia/efficient-string-concatenation-in-go
 **Calculate distance between 2 GPS coordinates in km**
 
 https://play.golang.org/p/MZVh5bRWqN
+
+**json.Decoder vs. json.Unmarshal**
+
+https://ahmet.im/blog/golang-json-decoder-pitfalls/
 
 ## MVC
 
