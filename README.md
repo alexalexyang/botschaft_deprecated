@@ -96,6 +96,18 @@ https://play.golang.org/p/MZVh5bRWqN
 
 https://ahmet.im/blog/golang-json-decoder-pitfalls/
 
+**Unmarshalling nested json into nested structs**
+
+https://medium.com/@xcoulon/nested-structs-in-golang-2c750403a007
+
+**Check if column exists in sqlite**
+
+https://stackoverflow.com/questions/947215/how-to-get-a-list-of-column-names-on-sqlite3-iphone
+
+**Update field if exists, else insert new row in sqlite3**
+
+https://stackoverflow.com/questions/15277373/sqlite-upsert-update-or-insert/15277374
+
 ## MVC
 
 **Example of MVC with Python**

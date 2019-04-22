@@ -61,9 +61,11 @@ type BotMessages struct {
 }
 
 type BotLikes struct {
-	BotID    int
-	Activity string
-	Thing    string
+	BotID      int
+	Activities string
+	Things     string
+	// Determines the overwhelming activity of the bot, used to modify functions. Maybe in a map[drive]bool > map[drive]func
+	Drives string
 }
 
 // LatLonStruct is a general purpose struct for GPS coordinates.
@@ -129,7 +131,7 @@ func concatColtoInsert(columns []interface{}) string {
 }
 
 // CreateInserttoDB takes in variable numbers of columns and row values to create and/or insert into a database.
-func CreateInserttoDB(dbName string, jsonBody map[string]interface{}) {
+func CreateInserttoDB(tableName string, jsonBody map[string]interface{}) {
 
 	columns, row := PrepSQLValues(jsonBody)
 
@@ -137,17 +139,13 @@ func CreateInserttoDB(dbName string, jsonBody map[string]interface{}) {
 	check(err)
 
 	// Create table if not exists.
-	queryTemplate := `CREATE TABLE IF NOT EXISTS {dbName} ({buffer});`
+	queryTemplate := `CREATE TABLE IF NOT EXISTS {tableName} ({buffer});`
 	buffer := concatColtoCreateTable(jsonBody)
-	replacements := strings.NewReplacer("{dbName}", dbName, "{buffer}", buffer)
+	replacements := strings.NewReplacer("{tableName}", tableName, "{buffer}", buffer)
 	query := replacements.Replace(queryTemplate)
 
 	stmt, err := db.Prepare(query)
 	_, err = stmt.Exec()
-
-	// Alter table add column if not exists.
-
-	// Update table where X if exists.
 
 	// Insert values.
 	buffer = concatColtoInsert(columns)
@@ -155,8 +153,8 @@ func CreateInserttoDB(dbName string, jsonBody map[string]interface{}) {
 	placeholders := strings.Repeat("?,", len(row))
 	placeholders = placeholders[:len(placeholders)-1]
 
-	queryTemplate = `INSERT INTO {dbName} ({buffer}) values ({placeholders});`
-	replacements = strings.NewReplacer("{dbName}", dbName, "{buffer}", buffer, "{placeholders}", placeholders)
+	queryTemplate = `INSERT INTO {tableName} ({buffer}) values ({placeholders});`
+	replacements = strings.NewReplacer("{tableName}", tableName, "{buffer}", buffer, "{placeholders}", placeholders)
 	query = replacements.Replace(queryTemplate)
 
 	stmt, err = db.Prepare(query)

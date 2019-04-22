@@ -1,16 +1,18 @@
 {{define "yield" }}
-<h1>Get a bot!</h1>
+<h1>Where should the bot go?</h1>
 <form method="POST">
-    <label>UserID:</label><br />
-    <input type="number" name="userid"><br />
+    <label>BSID:</label><br />
+    <input type="number" name="bsid"><br />
+    <label>OSMID:</label><br />
+    <input type="number" name="osmid"><br />
     <label>BotID:</label><br />
     <input type="number" name="botid"><br />
-    <label>Bot Name:</label><br />
-    <textarea name="name"></textarea><br />
     <label>Latitude:</label><br />
     <input type="number" step="any" name="latitude"><br />
     <label>Longitude:</label><br />
     <input type="number" step="any" name="longitude"><br />
+    <label>Visit type:</label><br />
+    <input type="text" step="any" name="visittype"><br />
     <input type="submit">
 </form>
 {{end}}

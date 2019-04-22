@@ -20,6 +20,7 @@ func initRouter() *mux.Router {
 	router.HandleFunc("/", controllers.IndexHandler)
 	router.HandleFunc("/createuser", controllers.CreateUserHandler)
 	router.HandleFunc("/createbot", controllers.CreateBotHandler)
+	router.HandleFunc("/createbotpois", controllers.CreateBotPoisHandler)
 	// router.HandleFunc("/createentry", controllers.CreateHandler).Methods("POST")
 	return router
 }
