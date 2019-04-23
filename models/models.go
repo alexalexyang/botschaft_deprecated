@@ -162,33 +162,3 @@ func CreateInserttoDB(tableName string, jsonBody map[string]interface{}) {
 
 	db.Close()
 }
-
-// Initialise a bot
-func createBot(name string, lat float64, lon float64, radius float64) BotBaseProfile {
-	// TODO: Add bot to DB.
-	bot := BotBaseProfile{
-		Lat:    lat,
-		Lon:    lon,
-		Radius: radius,
-		// POIs:   make(map[controllers.LatLonStruct]map[string]string),
-	}
-	return bot
-}
-
-func GetAllBots() map[string]BotBaseProfile {
-	radius := float64(1000)
-	mochimochi := createBot("mochimochi", 41.718621, 44.795495, radius)
-	iceicebaby := createBot("iceicebaby", 41.717785, 44.794949, radius)
-	whateverbot := createBot("whateverbot", 41.718417, 44.797915, radius)
-	rustabot := createBot("rustabot", 41.705064, 44.789050, radius)
-	benny := createBot("benny", 42.705064, 46.789050, radius)
-
-	allBots := make(map[string]BotBaseProfile)
-	allBots["mochimochi"] = mochimochi
-	allBots["iceicebaby"] = iceicebaby
-	allBots["whateverbot"] = whateverbot
-	allBots["rustabot"] = rustabot
-	allBots["benny"] = benny
-
-	return allBots
-}
