@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/alexalexyang/botschaft/botbehaviour"
+
 	"github.com/alexalexyang/botschaft/models"
 )
 
@@ -14,9 +16,27 @@ func check(err error) {
 	}
 }
 
+// BotsTravel ---------------------------------------------------------------
+
+func BotsTravelHandler(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("views/base.gohtml", "views/botbehaviour/travel.gohtml")
+	check(err)
+
+	// Get travelbots - impt parts: bot, and its pois.
+	// Marshal into json.
+	// Test first with bot only without pois.
+	bots := botbehaviour.GetTravelBots()
+
+	fmt.Println("Marshal into JSON, please: ", bots)
+
+	t.ExecuteTemplate(w, "base", nil)
+}
+
+// CRUD handlers ---------------------------------------------------------------
+
 func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
-	t, err := template.ParseFiles("views/base.gohtml", "views/createuser.gohtml")
+	t, err := template.ParseFiles("views/base.gohtml", "views/crud/createuser.gohtml")
 	check(err)
 
 	if r.Method != http.MethodPost {
@@ -36,12 +56,11 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	models.CreateInserttoDB("users", jsonMap)
 
 	http.Redirect(w, r, "http://localhost:3000", http.StatusSeeOther)
-
 }
 
 func CreateBotHandler(w http.ResponseWriter, r *http.Request) {
 
-	t, err := template.ParseFiles("views/base.gohtml", "views/createbot.gohtml")
+	t, err := template.ParseFiles("views/base.gohtml", "views/crud/createbot.gohtml")
 	check(err)
 
 	if r.Method != http.MethodPost {
@@ -66,7 +85,7 @@ func CreateBotHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateBotPoisHandler(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("views/base.gohtml", "views/createbotpois.gohtml")
+	t, err := template.ParseFiles("views/base.gohtml", "views/crud/createbotpois.gohtml")
 	check(err)
 
 	if r.Method != http.MethodPost {

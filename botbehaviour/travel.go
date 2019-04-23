@@ -23,11 +23,11 @@ func check(err error) {
 }
 
 type bot struct {
-	id  int
-	lat float64
-	lon float64
-	// radius float64
-	pois []poi
+	id     int
+	lat    float64
+	lon    float64
+	radius float64
+	pois   []poi
 }
 
 type poi struct {
@@ -44,14 +44,14 @@ type jsonStruct struct {
 }
 
 // Collects all bots with travel in their drive in a []bot.
-func getTravelbots() []bot {
+func GetTravelBots() []bot {
 
 	// Select all travelbots.
 	db, err := sql.Open("sqlite3", "database.db")
 	check(err)
 
 	// Create table if not exists.
-	query := `SELECT BotID, Lat, Lon FROM bots WHERE bottype="travelbot";`
+	query := `SELECT BotID, Radius, Lat, Lon FROM bots WHERE bottype="travelbot";`
 	rows, err := db.Query(query)
 	check(err)
 	defer rows.Close()
@@ -61,7 +61,7 @@ func getTravelbots() []bot {
 	for rows.Next() {
 		b := bot{}
 
-		err = rows.Scan(&b.id, &b.lat, &b.lon)
+		err = rows.Scan(&b.id, &b.radius, &b.lat, &b.lon)
 		check(err)
 		bots = append(bots, b)
 	}
@@ -75,12 +75,12 @@ func getTravelbots() []bot {
 func createOSMQuery(bots []bot) string {
 	poiType := "amenity"
 	poiSubType := "restaurant"
-	radius := "1000"
 
 	var pointsBuffer bytes.Buffer
 	for _, bot := range bots {
 		lat := strconv.FormatFloat(bot.lat, 'f', 6, 64)
 		lon := strconv.FormatFloat(bot.lon, 'f', 6, 64)
+		radius := strconv.FormatFloat(bot.radius, 'f', 6, 64)
 		pointTemplate := "node(around:{radius},{lat},{lon})[{poiType}={poiSubType}];"
 		replacements := strings.NewReplacer("{radius}", radius, "{lat}", lat, "{lon}", lon, "{poiType}", poiType, "{poiSubType}", poiSubType)
 		point := replacements.Replace(pointTemplate)
@@ -95,7 +95,6 @@ func createOSMQuery(bots []bot) string {
 
 // Query OSM with single long query from createOSMQuery() to get all POIs near all travel bots. Collect into a []poi.
 func getPOIs(query string) []poi {
-	// fmt.Println("Query:", query)
 	// Send a GET request to Overpass to get all POIs for all bot locations.
 	resp, err := http.Get(query)
 	check(err)
@@ -104,13 +103,9 @@ func getPOIs(query string) []poi {
 	body, err := ioutil.ReadAll(resp.Body)
 	check(err)
 
-	// fmt.Println(string(body))
-
 	// Transform to a Golang struct we can use.
 	result := &jsonStruct{}
 	json.Unmarshal(body, &result)
-	// fmt.Println(string(body))
-	// fmt.Println("JSON result:", result)
 
 	return result.Pois
 }
@@ -151,9 +146,6 @@ func getNearestPOIs(bots []bot, pois []poi, radius float64) []bot {
 		}
 		newBotsSlice = append(newBotsSlice, bot)
 	}
-	// for _, bot := range newBotsSlice {
-	// fmt.Println(bot)
-	// }
 	return newBotsSlice
 }
 
@@ -237,9 +229,9 @@ func pickNewPOI(bots []bot) []bot {
 	return newBotsSlice
 }
 
-func TravelBotGo() {
+func GoTravel() {
 	for {
-		travelBots := getTravelbots()
+		travelBots := GetTravelBots()
 		query := createOSMQuery(travelBots)
 		pois := getPOIs(query)
 		travelBots = getNearestPOIs(travelBots, pois, 1000)
@@ -252,4 +244,32 @@ func TravelBotGo() {
 			fmt.Println("")
 		}
 	}
+}
+
+func GetTravelPlans() []bot {
+	bots := GetTravelBots()
+	newBotsSlice := []bot{}
+
+	db, err := sql.Open("sqlite3", "database.db")
+	check(err)
+
+	for _, bot := range bots {
+
+		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="visited" AND botid=$1;`, bot.id)
+		check(err)
+		defer rows.Close()
+		for rows.Next() {
+			poi := poi{}
+			var IDint64 sql.NullInt64
+			err = rows.Scan(&IDint64, &poi.Lat, &poi.Lon)
+			check(err)
+			poi.ID = int(IDint64.Int64)
+			bot.pois = append(bot.pois, poi)
+		}
+		err = rows.Err()
+		check(err)
+		newBotsSlice = append(newBotsSlice, bot)
+	}
+	db.Close()
+	return newBotsSlice
 }
