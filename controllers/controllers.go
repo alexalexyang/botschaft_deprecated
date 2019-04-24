@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/alexalexyang/botschaft/botbehaviour"
-
 	"github.com/alexalexyang/botschaft/models"
 )
 
@@ -19,17 +18,15 @@ func check(err error) {
 // BotsTravel ---------------------------------------------------------------
 
 func BotsTravelHandler(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("views/base.gohtml", "views/botbehaviour/travel.gohtml")
+	t, err := template.ParseFiles("views/base.gohtml", "views/index.gohtml", "views/botbehaviour/travel.gohtml")
 	check(err)
 
 	// Get travelbots - impt parts: bot, and its pois.
 	// Marshal into json.
 	// Test first with bot only without pois.
-	bots := botbehaviour.GetTravelBots()
+	bots := botbehaviour.GetTravelPlans()
 
-	fmt.Println("Marshal into JSON, please: ", bots)
-
-	t.ExecuteTemplate(w, "base", nil)
+	t.ExecuteTemplate(w, "base", string(bots))
 }
 
 // CRUD handlers ---------------------------------------------------------------

@@ -12,43 +12,48 @@ L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={
 // Do stuff on the map.
 
 // Using the bots var, which is a map[botName] map[poiID] map[tag]tag.
+console.log(bots)
+for (i=0; i<bots.length;i++) {
+    console.log("Bot is: ", bots[i].Name)
 
-for (var bot in bots) {
-
-    var lat = bots[bot]["lat"]
-    var lon = bots[bot]["lon"]
+    var name = bots[i].Name
+    var lat = bots[i].Lat
+    var lon = bots[i].Lon
 
     var botCircle = L.circle([lat, lon], {
         color: 'green',
         fillColor: 'green',
         fillOpacity: 0.2,
         weight: 0.6,
-        radius: 10
+        radius: 50
     }).addTo(mymap);
 
-    botText = '<h3>' + bot + '</h3>' +
+    botText = '<h3>' + bots[i].Name + '</h3>' +
         '</p>I\'m here!</h3>' +
         '<p>' + lat + ', ' + lon + '</p>'
 
     botCircle.bindPopup(botText);
 
-    var pois = bots[bot]["pois"]
-    for (var poi in pois) {
-        var circle = L.circle([pois[poi]["lat"], pois[poi]["lon"]], {
+    var pois = bots[i].Pois
+    if (pois != null) {
+        for (j=0; j<pois.length;j++) {
+        console.log(pois[j])
+        var circle = L.circle([pois[j].lat, pois[j].lon], {
             color: 'red',
             fillColor: '#f03',
             fillOpacity: 0.2,
             weight: 0.6,
             radius: 10
         }).addTo(mymap);
+    }
 
-        text = '<p>Amenity: ' + pois[poi]["amenity"] + '</h3>' +
-            '<h3>Name: ' + pois[poi]["name:en"] + '</h3>' +
-            '<p>Description: ' + pois[poi]["description"] + '</p>' +
-            '<p>' + pois[poi]["addr:housenumber"] + " " + pois[poi]["addr:street"] + '</p>' +
-            '<p>' + pois[poi]["lat"] + ', ' + pois[poi]["lon"] + '</p>'
+        // text = '<p>Amenity: ' + pois[poi]["amenity"] + '</h3>' +
+        //     '<h3>Name: ' + pois[poi]["name:en"] + '</h3>' +
+        //     '<p>Description: ' + pois[poi]["description"] + '</p>' +
+        //     '<p>' + pois[poi]["addr:housenumber"] + " " + pois[poi]["addr:street"] + '</p>' +
+        //     '<p>' + pois[poi]["lat"] + ', ' + pois[poi]["lon"] + '</p>'
 
-        circle.bindPopup(text);
+        {{/* circle.bindPopup(text); */}}
     }
 
 

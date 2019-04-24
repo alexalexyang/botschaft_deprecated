@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	botbehaviour.GoTravel()
+	go botbehaviour.GoTravel()
 	log.Fatal(http.ListenAndServe(":3000", initRouter()))
 }
 

@@ -23,11 +23,12 @@ func check(err error) {
 }
 
 type bot struct {
-	id     int
-	lat    float64
-	lon    float64
-	radius float64
-	pois   []poi
+	ID     int
+	Name   string
+	Lat    float64
+	Lon    float64
+	Radius float64
+	Pois   []poi
 }
 
 type poi struct {
@@ -50,8 +51,7 @@ func GetTravelBots() []bot {
 	db, err := sql.Open("sqlite3", "database.db")
 	check(err)
 
-	// Create table if not exists.
-	query := `SELECT BotID, Radius, Lat, Lon FROM bots WHERE bottype="travelbot";`
+	query := `SELECT BotID, Name, Radius, Lat, Lon FROM bots WHERE bottype="travelbot";`
 	rows, err := db.Query(query)
 	check(err)
 	defer rows.Close()
@@ -61,7 +61,7 @@ func GetTravelBots() []bot {
 	for rows.Next() {
 		b := bot{}
 
-		err = rows.Scan(&b.id, &b.radius, &b.lat, &b.lon)
+		err = rows.Scan(&b.ID, &b.Name, &b.Radius, &b.Lat, &b.Lon)
 		check(err)
 		bots = append(bots, b)
 	}
@@ -78,9 +78,9 @@ func createOSMQuery(bots []bot) string {
 
 	var pointsBuffer bytes.Buffer
 	for _, bot := range bots {
-		lat := strconv.FormatFloat(bot.lat, 'f', 6, 64)
-		lon := strconv.FormatFloat(bot.lon, 'f', 6, 64)
-		radius := strconv.FormatFloat(bot.radius, 'f', 6, 64)
+		lat := strconv.FormatFloat(bot.Lat, 'f', 6, 64)
+		lon := strconv.FormatFloat(bot.Lon, 'f', 6, 64)
+		radius := strconv.FormatFloat(bot.Radius, 'f', 6, 64)
 		pointTemplate := "node(around:{radius},{lat},{lon})[{poiType}={poiSubType}];"
 		replacements := strings.NewReplacer("{radius}", radius, "{lat}", lat, "{lon}", lon, "{poiType}", poiType, "{poiSubType}", poiSubType)
 		point := replacements.Replace(pointTemplate)
@@ -139,9 +139,9 @@ func getNearestPOIs(bots []bot, pois []poi, radius float64) []bot {
 	newBotsSlice := []bot{}
 	for _, bot := range bots {
 		for _, poi := range pois {
-			distance := haversine(bot.lat, bot.lon, poi.Lat, poi.Lon)
+			distance := haversine(bot.Lat, bot.Lon, poi.Lat, poi.Lon)
 			if withinBotRadius(distance, radius) == true {
-				bot.pois = append(bot.pois, poi)
+				bot.Pois = append(bot.Pois, poi)
 			}
 		}
 		newBotsSlice = append(newBotsSlice, bot)
@@ -154,19 +154,69 @@ func insertBotPOIsDB(bots []bot) {
 	db, err := sql.Open("sqlite3", "database.db")
 	check(err)
 	for _, bot := range bots {
-		for _, poi := range bot.pois {
+		for _, poi := range bot.Pois {
 			id := strconv.Itoa(poi.ID)
 			lat := strconv.FormatFloat(poi.Lat, 'f', 6, 64)
 			lon := strconv.FormatFloat(poi.Lon, 'f', 6, 64)
 
 			statement := `INSERT INTO botpois (botid, osmid, latitude, longitude, visitype) values ($1, $2, $3, $4, $5);`
-
 			check(err)
-			_, err = db.Exec(statement, bot.id, id, lat, lon, `maybe`)
+			_, err = db.Exec(statement, bot.ID, id, lat, lon, `maybe`)
+
+			tags := poi.Tags
+			statement = `INSERT INTO taginfo (
+					botid,
+					osmid,
+					amenity,
+					name,
+					name_en,
+					addr_housenumber,
+					addr_street,
+					opening_hours,
+					phone,
+					cuisine,
+					description,
+					internet_access,
+					smoking,
+					wheelchair
+					) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`
+			check(err)
+			_, err = db.Exec(statement,
+				bot.ID,
+				id,
+				tags["amenity"],
+				tags["name"],
+				tags["name:en"],
+				tags["add:housenumber"],
+				tags["add:street"],
+				tags["opening_hours"],
+				tags["phone"],
+				tags["cuisine"],
+				tags["description"],
+				tags["internet_access"],
+				tags["smoking"],
+				tags["wheelchair"])
 		}
 	}
 	db.Close()
 }
+
+// CREATE TABLE taginfo (
+// 	botid,
+// 	osmid TEXT,
+// 	amenity TEXT,
+// 	name TEXT,
+// 	"name_en" TEXT,
+// 	"addr_housenumber" TEXT,
+// 	"addr_street" TEXT,
+// 	opening_hours TEXT,
+// 	phone TEXT,
+// 	cuisine TEXT,
+// 	description TEXT,
+// 	internet_access TEXT,
+// 	smoking TEXT,
+// 	wheelchair TEXT
+//   );
 
 // Insert current location as "visited" in botpois. Replace current location with randomly picked location. Delete all "maybe" pois.
 func pickNewPOI(bots []bot) []bot {
@@ -174,11 +224,12 @@ func pickNewPOI(bots []bot) []bot {
 
 	db, err := sql.Open("sqlite3", "database.db")
 	check(err)
+
 	for _, bot := range bots {
 		// Insert current location as "visited" in botpois.
-		id := strconv.Itoa(bot.id)
-		lat := strconv.FormatFloat(bot.lat, 'f', 6, 64)
-		lon := strconv.FormatFloat(bot.lon, 'f', 6, 64)
+		id := strconv.Itoa(bot.ID)
+		lat := strconv.FormatFloat(bot.Lat, 'f', 6, 64)
+		lon := strconv.FormatFloat(bot.Lon, 'f', 6, 64)
 
 		statement := `INSERT INTO botpois (botid, latitude, longitude, visitype) values ($1, $3, $4, $5);`
 
@@ -197,7 +248,7 @@ func pickNewPOI(bots []bot) []bot {
 		}
 
 		pois := []poi{}
-		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="maybe" AND botid=$1;`, bot.id)
+		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="maybe" AND botid=$1;`, bot.ID)
 		check(err)
 		defer rows.Close()
 		for rows.Next() {
@@ -213,23 +264,28 @@ func pickNewPOI(bots []bot) []bot {
 		if len(pois) > 0 {
 			rand.Seed(time.Now().Unix())
 			randomPOI := pois[rand.Intn(len(pois))]
-			bot.lat = randomPOI.Lat
-			bot.lon = randomPOI.Lon
+			bot.Lat = randomPOI.Lat
+			bot.Lon = randomPOI.Lon
 		}
 		newBotsSlice = append(newBotsSlice, bot)
 		statement = `UPDATE bots SET Lat=?,Lon=? WHERE BotID=?;`
-		_, err = db.Exec(statement, bot.lat, bot.lon, bot.id)
-
-		// Delete all "maybe" pois.
-		statement = `DELETE FROM botpois WHERE visitype="maybe";`
-		_, err = db.Exec(statement)
+		_, err = db.Exec(statement, bot.Lat, bot.Lon, bot.ID)
 
 	}
 	db.Close()
 	return newBotsSlice
 }
 
+// Delete all "maybe" pois.
+func refresh() {
+	db, err := sql.Open("sqlite3", "database.db")
+	check(err)
+	statement := `DELETE FROM botpois WHERE visitype="maybe"; DELETE FROM taginfo;`
+	_, err = db.Exec(statement)
+}
+
 func GoTravel() {
+
 	for {
 		travelBots := GetTravelBots()
 		query := createOSMQuery(travelBots)
@@ -237,16 +293,17 @@ func GoTravel() {
 		travelBots = getNearestPOIs(travelBots, pois, 1000)
 		insertBotPOIsDB(travelBots)
 		travelBots = pickNewPOI(travelBots)
-		time.Sleep(15 * time.Second)
+		time.Sleep(10 * time.Second)
+		refresh()
 
 		for _, bot := range travelBots {
-			fmt.Println(bot.id, bot.lat, bot.lon)
+			fmt.Println(bot.Name, bot.Lat, bot.Lon)
 			fmt.Println("")
 		}
 	}
 }
 
-func GetTravelPlans() []bot {
+func GetTravelPlans() []byte {
 	bots := GetTravelBots()
 	newBotsSlice := []bot{}
 
@@ -255,21 +312,95 @@ func GetTravelPlans() []bot {
 
 	for _, bot := range bots {
 
-		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="visited" AND botid=$1;`, bot.id)
+		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="maybe" AND botid=$1;
+		SELECT 
+		amenity,
+		name,
+		name_en,
+		addr_housenumber,
+		addr_street,
+		opening_hours,
+		phone,
+		cuisine,
+		description,
+		internet_access,
+		smoking,
+		wheelchair
+		FROM taginfo WHERE botid=$2;`, bot.ID, bot.ID)
 		check(err)
 		defer rows.Close()
 		for rows.Next() {
 			poi := poi{}
 			var IDint64 sql.NullInt64
-			err = rows.Scan(&IDint64, &poi.Lat, &poi.Lon)
+
+			// tags := make(map[string]string)
+
+			type tagsStruct struct {
+				Amenity          string
+				Name             string
+				Name_en          string
+				Addr_housenumber string
+				Addr_street      string
+				Opening_hours    string
+				Phone            string
+				Cuisine          string
+				Description      string
+				Internet_access  string
+				Smoking          string
+				Wheelchair       string
+			}
+
+			tags := tagsStruct{}
+
+			err = rows.Scan(&IDint64,
+				&poi.Lat,
+				&poi.Lon,
+				&tags.Amenity,
+				&tags.Name,
+				&tags.Name_en,
+				&tags.Addr_housenumber,
+				&tags.Addr_street,
+				&tags.Opening_hours,
+				&tags.Phone,
+				&tags.Cuisine,
+				&tags.Description,
+				&tags.Internet_access,
+				&tags.Smoking,
+				&tags.Wheelchair)
 			check(err)
 			poi.ID = int(IDint64.Int64)
-			bot.pois = append(bot.pois, poi)
+
+			poi.Tags["amenity"] = tags.Amenity
+			poi.Tags["Name"] = tags.Name
+			poi.Tags["Name_en"] = tags.Name_en
+			poi.Tags["Addr_housenumber"] = tags.Addr_housenumber
+			poi.Tags["Addr_street"] = tags.Addr_street
+			poi.Tags["Opening_hours"] = tags.Opening_hours
+			poi.Tags["Phone"] = tags.Phone
+			poi.Tags["Cuisine"] = tags.Cuisine
+			poi.Tags["Description"] = tags.Description
+			poi.Tags["Internet_access"] = tags.Internet_access
+			poi.Tags["Smoking"] = tags.Smoking
+			poi.Tags["Wheelchair"] = tags.Wheelchair
+
+			bot.Pois = append(bot.Pois, poi)
 		}
 		err = rows.Err()
 		check(err)
 		newBotsSlice = append(newBotsSlice, bot)
 	}
 	db.Close()
-	return newBotsSlice
+
+	botsJSON, err := json.Marshal(newBotsSlice)
+	check(err)
+
+	for _, bot := range newBotsSlice {
+		for _, poi := range bot.Pois {
+			for k, v := range poi.Tags {
+				fmt.Println(k, v)
+			}
+		}
+	}
+
+	return botsJSON
 }
