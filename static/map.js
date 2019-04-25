@@ -11,9 +11,7 @@ L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={
 
 // Do stuff on the map.
 
-// Using the bots var, which is a map[botName] map[poiID] map[tag]tag.
-console.log(bots)
-for (i=0; i<bots.length;i++) {
+for (i = 0; i < bots.length; i++) {
     console.log("Bot is: ", bots[i].Name)
 
     var name = bots[i].Name
@@ -35,25 +33,38 @@ for (i=0; i<bots.length;i++) {
     botCircle.bindPopup(botText);
 
     var pois = bots[i].Pois
+        // In case there are no POIs, we check for null.
     if (pois != null) {
-        for (j=0; j<pois.length;j++) {
-        console.log(pois[j])
-        var circle = L.circle([pois[j].lat, pois[j].lon], {
-            color: 'red',
-            fillColor: '#f03',
-            fillOpacity: 0.2,
-            weight: 0.6,
-            radius: 10
-        }).addTo(mymap);
-    }
+        for (j = 0; j < pois.length; j++) {
+            // console.log(pois[j])
+            var circle = L.circle([pois[j].lat, pois[j].lon], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.2,
+                weight: 0.6,
+                radius: 10
+            }).addTo(mymap);
 
-        // text = '<p>Amenity: ' + pois[poi]["amenity"] + '</h3>' +
-        //     '<h3>Name: ' + pois[poi]["name:en"] + '</h3>' +
-        //     '<p>Description: ' + pois[poi]["description"] + '</p>' +
-        //     '<p>' + pois[poi]["addr:housenumber"] + " " + pois[poi]["addr:street"] + '</p>' +
-        //     '<p>' + pois[poi]["lat"] + ', ' + pois[poi]["lon"] + '</p>'
+            // console.log(pois[j].tags)
 
-        {{/* circle.bindPopup(text); */}}
+            text = 'Amenity: ' + pois[j].tags.Amenity + '</br>' +
+                pois[j].lat + ', ' + pois[j].lon + '</br>' +
+                '<h3>Name: ' + pois[j].tags.Name_en + '</h3>' +
+                '<p>Description: ' + pois[j].tags.Description + '</p>' +
+                'Address: </br>' +
+                '<p>' + pois[j].tags.Addr_housenumber + " " + pois[j].tags.Addr_street + '</p>' +
+                '<p>Opening hours: ' + pois[j].tags.Opening_hours + '</p>' +
+                '<p>Phone: ' + pois[j].tags.Phone + '</p>' +
+                '<p>Cuisine: ' + pois[j].tags.Cuisine + '</p>' +
+                '<p>Internet: ' + pois[j].tags.Internet + '</p>' +
+                '<p>Wheelchair: ' + pois[j].tags.Wheelchair + '</p>' +
+                '<p>Smoking: ' + pois[j].tags.Smoking + '</p>'
+
+            circle.bindPopup(text);
+        }
+
+
+
     }
 
 

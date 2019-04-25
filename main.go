@@ -18,9 +18,9 @@ func initRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	router.HandleFunc("/", controllers.BotsTravelHandler)
-	router.HandleFunc("/createuser", controllers.CreateUserHandler)
-	router.HandleFunc("/createbot", controllers.CreateBotHandler)
-	router.HandleFunc("/createbotpois", controllers.CreateBotPoisHandler)
+	// router.HandleFunc("/createuser", controllers.CreateUserHandler)
+	// router.HandleFunc("/createbot", controllers.CreateBotHandler)
+	// router.HandleFunc("/createbotpois", controllers.CreateBotPoisHandler)
 	// router.HandleFunc("/createentry", controllers.CreateHandler).Methods("POST")
 	return router
 }

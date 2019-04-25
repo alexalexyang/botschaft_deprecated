@@ -187,8 +187,8 @@ func insertBotPOIsDB(bots []bot) {
 				tags["amenity"],
 				tags["name"],
 				tags["name:en"],
-				tags["add:housenumber"],
-				tags["add:street"],
+				tags["addr:housenumber"],
+				tags["addr:street"],
 				tags["opening_hours"],
 				tags["phone"],
 				tags["cuisine"],
@@ -284,6 +284,132 @@ func refresh() {
 	_, err = db.Exec(statement)
 }
 
+type tagsStruct struct {
+	Amenity          string
+	Name             string
+	Name_en          string
+	Addr_housenumber string
+	Addr_street      string
+	Opening_hours    string
+	Phone            string
+	Cuisine          string
+	Description      string
+	Internet_access  string
+	Smoking          string
+	Wheelchair       string
+}
+
+func getTags(db *sql.DB, workingPOI poi) poi {
+	newPOI := poi{}
+
+	// Get data from table taginfo.
+	rows, err := db.Query(`SELECT 
+	amenity,
+	name,
+	name_en,
+	addr_housenumber,
+	addr_street,
+	opening_hours,
+	phone,
+	cuisine,
+	description,
+	internet_access,
+	smoking,
+	wheelchair
+	FROM taginfo WHERE osmid=$1;`, workingPOI.ID)
+	check(err)
+	defer rows.Close()
+
+	for rows.Next() {
+
+		tags := tagsStruct{}
+
+		err = rows.Scan(
+			&tags.Amenity,
+			&tags.Name,
+			&tags.Name_en,
+			&tags.Addr_housenumber,
+			&tags.Addr_street,
+			&tags.Opening_hours,
+			&tags.Phone,
+			&tags.Cuisine,
+			&tags.Description,
+			&tags.Internet_access,
+			&tags.Smoking,
+			&tags.Wheelchair)
+		err = rows.Err()
+		check(err)
+
+		workingPOI.Tags = make(map[string]string)
+		workingPOI.Tags["Amenity"] = tags.Amenity
+		workingPOI.Tags["Name"] = tags.Name
+		workingPOI.Tags["Name_en"] = tags.Name_en
+		workingPOI.Tags["Addr_housenumber"] = tags.Addr_housenumber
+		workingPOI.Tags["Addr_street"] = tags.Addr_street
+		workingPOI.Tags["Opening_hours"] = tags.Opening_hours
+		workingPOI.Tags["Phone"] = tags.Phone
+		workingPOI.Tags["Cuisine"] = tags.Cuisine
+		workingPOI.Tags["Description"] = tags.Description
+		workingPOI.Tags["Internet_access"] = tags.Internet_access
+		workingPOI.Tags["Smoking"] = tags.Smoking
+		workingPOI.Tags["Wheelchair"] = tags.Wheelchair
+
+		newPOI = workingPOI
+	}
+	return newPOI
+}
+
+func GetTravelPlans() []byte {
+	bots := GetTravelBots()
+	newBotsSlice := []bot{}
+
+	db, err := sql.Open("sqlite3", "database.db")
+	check(err)
+
+	for _, bot := range bots {
+
+		// Get data from table botpois.
+		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="maybe" AND botid=$1`, bot.ID)
+		check(err)
+		defer rows.Close()
+
+		poisTempSlice := []poi{}
+
+		for rows.Next() {
+			poi := poi{}
+			var IDint64 sql.NullInt64
+
+			err = rows.Scan(&IDint64, &poi.Lat, &poi.Lon)
+			check(err)
+			poi.ID = int(IDint64.Int64)
+
+			poisTempSlice = append(poisTempSlice, poi)
+		}
+		err = rows.Err()
+		check(err)
+
+		for _, poi := range poisTempSlice {
+			poi = getTags(db, poi)
+			bot.Pois = append(bot.Pois, poi)
+		}
+
+		newBotsSlice = append(newBotsSlice, bot)
+	}
+	db.Close()
+
+	botsJSON, err := json.Marshal(newBotsSlice)
+	check(err)
+
+	// for _, bot := range newBotsSlice {
+	// 	for _, poi := range bot.Pois {
+	// 		for k, v := range poi.Tags {
+	// 			fmt.Println(k, v)
+	// 		}
+	// 	}
+	// }
+	return botsJSON
+}
+
 func GoTravel() {
 
 	for {
@@ -301,106 +427,4 @@ func GoTravel() {
 			fmt.Println("")
 		}
 	}
-}
-
-func GetTravelPlans() []byte {
-	bots := GetTravelBots()
-	newBotsSlice := []bot{}
-
-	db, err := sql.Open("sqlite3", "database.db")
-	check(err)
-
-	for _, bot := range bots {
-
-		rows, err := db.Query(`SELECT osmid, latitude, longitude FROM botpois WHERE visitype="maybe" AND botid=$1;
-		SELECT 
-		amenity,
-		name,
-		name_en,
-		addr_housenumber,
-		addr_street,
-		opening_hours,
-		phone,
-		cuisine,
-		description,
-		internet_access,
-		smoking,
-		wheelchair
-		FROM taginfo WHERE botid=$2;`, bot.ID, bot.ID)
-		check(err)
-		defer rows.Close()
-		for rows.Next() {
-			poi := poi{}
-			var IDint64 sql.NullInt64
-
-			// tags := make(map[string]string)
-
-			type tagsStruct struct {
-				Amenity          string
-				Name             string
-				Name_en          string
-				Addr_housenumber string
-				Addr_street      string
-				Opening_hours    string
-				Phone            string
-				Cuisine          string
-				Description      string
-				Internet_access  string
-				Smoking          string
-				Wheelchair       string
-			}
-
-			tags := tagsStruct{}
-
-			err = rows.Scan(&IDint64,
-				&poi.Lat,
-				&poi.Lon,
-				&tags.Amenity,
-				&tags.Name,
-				&tags.Name_en,
-				&tags.Addr_housenumber,
-				&tags.Addr_street,
-				&tags.Opening_hours,
-				&tags.Phone,
-				&tags.Cuisine,
-				&tags.Description,
-				&tags.Internet_access,
-				&tags.Smoking,
-				&tags.Wheelchair)
-			check(err)
-			poi.ID = int(IDint64.Int64)
-
-			poi.Tags["amenity"] = tags.Amenity
-			poi.Tags["Name"] = tags.Name
-			poi.Tags["Name_en"] = tags.Name_en
-			poi.Tags["Addr_housenumber"] = tags.Addr_housenumber
-			poi.Tags["Addr_street"] = tags.Addr_street
-			poi.Tags["Opening_hours"] = tags.Opening_hours
-			poi.Tags["Phone"] = tags.Phone
-			poi.Tags["Cuisine"] = tags.Cuisine
-			poi.Tags["Description"] = tags.Description
-			poi.Tags["Internet_access"] = tags.Internet_access
-			poi.Tags["Smoking"] = tags.Smoking
-			poi.Tags["Wheelchair"] = tags.Wheelchair
-
-			bot.Pois = append(bot.Pois, poi)
-		}
-		err = rows.Err()
-		check(err)
-		newBotsSlice = append(newBotsSlice, bot)
-	}
-	db.Close()
-
-	botsJSON, err := json.Marshal(newBotsSlice)
-	check(err)
-
-	for _, bot := range newBotsSlice {
-		for _, poi := range bot.Pois {
-			for k, v := range poi.Tags {
-				fmt.Println(k, v)
-			}
-		}
-	}
-
-	return botsJSON
 }
