@@ -21,7 +21,7 @@ While further off, I would like to explore if possible:
 
 # Working details
 
-This project is built with Golang 1.12, Leaflet, Mapbox, and SQLite.
+This project is built with Golang 1.12, Leaflet, Mapbox, and SQLite (will switch to Docker + Postgres as the project matures).
 
 Every 30 minutes, the program queries the OpenStreetMap (OSM) Overpass QL API for points of interests (limited to restaurants for now) within a limited radius of a bot. The bot picks one at random and moves to it. The bot's location is highlighted with a translucent green circle. The bot's next possible locations are highlighted as translucent red spots.
 
