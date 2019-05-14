@@ -419,7 +419,7 @@ func GoTravel() {
 		travelBots = getNearestPOIs(travelBots, pois, 1000)
 		insertBotPOIsDB(travelBots)
 		travelBots = pickNewPOI(travelBots)
-		time.Sleep(10 * time.Second)
+		time.Sleep(1800 * time.Second)
 		refresh()
 
 		for _, bot := range travelBots {
