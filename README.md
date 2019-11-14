@@ -1,3 +1,9 @@
+# Note
+
+This repo has been deprecated because I am rewriting the whole project from Go to JS. Because JS is more useful on the job market and I need NodeJS, React, and other JS things on my CV. Makes me sad.
+
+The new version will be up soon.
+
 # About
 
 This project has been in development since March 2019.
